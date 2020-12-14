@@ -1,26 +1,47 @@
 const gulp = require('gulp');
 const less = require('gulp-less');
 const del = require('del');
+const browserSync = require('browser-sync');
+const reload = browserSync.reload;
 
-gulp.task('clean:dist', function () {
-  return del('dist/**/*');
-});
+function clean() {
+  return del('./dist/**');
+}
 
-gulp.task('copy:src', function () {
-  return gulp.src(['src/**', '!src/less{,/**}']).pipe(gulp.dest('dist'));
-});
+function copySrc() {
+  return gulp.src(['./src/**', '!./src/less{,/**}']).pipe(gulp.dest('dist'));
+}
 
-gulp.task('build:css', function () {
+function buildHTML() {
+  return gulp.src('./src/**/*.html').pipe(gulp.dest('./dist'));
+}
+
+function buildCSS() {
   return gulp
-    .src(['src/less/**', '!src/less/global{,/**}'])
+    .src(['./src/less/**', '!./src/less/global{,/**}'])
     .pipe(less())
-    .pipe(gulp.dest('dist/css'));
-});
+    .pipe(gulp.dest('./dist/css'))
+    .pipe(reload({ stream: true }));
+}
 
-gulp.task('watch:less', function () {
-  return gulp.watch('src/less/', gulp.series('build:css'));
-});
+function serve() {
+  browserSync.init({
+    server: {
+      baseDir: './dist/',
+    },
+    open: false,
+  });
 
-gulp.task('start', gulp.series('clean:dist', 'copy:src', 'build:css'));
+  gulp
+    .watch('./src/**/*.html')
+    .on('change', gulp.series(['buildHTML', reload]));
+  gulp.watch('./src/less/**/*.less', gulp.series(['buildCSS']));
+}
 
-exports.default = gulp.series('start', 'watch:less');
+exports.default = gulp.series(clean, copySrc, buildCSS, serve);
+
+exports.clean = clean;
+exports.copySrc = copySrc;
+exports.buildHTML = buildHTML;
+exports.buildCSS = buildCSS;
+exports.serve = serve;
